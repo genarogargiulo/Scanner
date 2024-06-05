@@ -1,3 +1,4 @@
 {
-  "extends": "@react-native/typescript-config/tsconfig.json"
+  "extends": "@react-native/typescript-config/tsconfig.json",
+  "include": ["d:/Scanner/**/*.js", "d:/Scanner/**/*.jsx", "d:/Scanner/**/*.ts", "d:/Scanner/**/*.tsx"]
 }
