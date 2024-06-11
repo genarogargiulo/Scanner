@@ -1,20 +1,13 @@
-// HomeScreen.js
-import React, {useState, useRef, useEffect} from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  Keyboard,
-} from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, FlatList, Keyboard, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {homeStyles as styles} from './styles';
-import {format} from 'date-fns';
+import { homeStyles as styles } from './styles';
+import { format } from 'date-fns';
 import Logo from './Logo';
+import { log } from './Logger'; // Importa la función de logging
 
-const HomeScreen = ({navigation, route}) => {
-  const {username, workstation} = route.params;
+const HomeScreen = ({ navigation, route }) => {
+  const { username, workstation } = route.params;
   const [inputText, setInputText] = useState('');
   const [history, setHistory] = useState([]);
   const [apiUrl, setApiUrl] = useState('');
@@ -26,6 +19,9 @@ const HomeScreen = ({navigation, route}) => {
       const storedApiUrl = await AsyncStorage.getItem('apiUrl');
       if (storedApiUrl) {
         setApiUrl(storedApiUrl);
+        await log(`API URL set to: ${storedApiUrl}`); // Log the API URL
+      } else {
+        await log('No API URL found in AsyncStorage');
       }
     };
     fetchApiUrl();
@@ -33,12 +29,9 @@ const HomeScreen = ({navigation, route}) => {
   }, []);
 
   useEffect(() => {
-    const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
-      () => {
-        inputRef.current.focus();
-      },
-    );
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      inputRef.current.focus();
+    });
 
     return () => {
       keyboardDidHideListener.remove();
@@ -63,7 +56,10 @@ const HomeScreen = ({navigation, route}) => {
     };
 
     try {
-      // Aquí puedes hacer la llamada a la API para enviar el mensaje
+      await log(`Sending message to API: ${JSON.stringify(message)}`);
+      await log(`API URL: ${apiUrl}`);
+      //Alert.alert('Sending Message', `URL: ${apiUrl}\nLectura: ${inputText}`);
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -72,14 +68,15 @@ const HomeScreen = ({navigation, route}) => {
         body: JSON.stringify(message),
       });
 
+      await log(`API response status: ${response.status}`);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Actualizar el historial y mantener solo los últimos 6 elementos
-      setHistory(prevHistory => {
+      setHistory((prevHistory) => {
         const updatedHistory = [
-          {lectura: `${workstation}: ${inputText}`, date, time},
+          { lectura: `${workstation}: ${inputText}`, date, time },
           ...prevHistory,
         ];
         return updatedHistory.slice(0, 6); // Mantener solo los primeros 6 elementos
@@ -90,13 +87,15 @@ const HomeScreen = ({navigation, route}) => {
       inputRef.current.focus();
     } catch (error) {
       console.error('Error sending message:', error);
+      await log(`Error sending message: ${error.message}`);
+      Alert.alert('Error', `Error sending message: ${error.message}`);
       setErrorMessage(
         'Error al enviar el mensaje. Por favor, verifique su conexión y la URL de la API.',
       ); // Establecer mensaje de error
     }
   };
 
-  const renderItem = ({item}) => (
+  const renderItem = ({ item }) => (
     <View style={styles.historyItem}>
       <Text style={styles.historyText}>{item.lectura}</Text>
       <Text style={styles.historyDate}>
